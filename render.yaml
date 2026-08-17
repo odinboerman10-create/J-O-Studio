@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: no-website-leads
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: PORT
+        value: 3000
+    disk:
+      name: leads-data
+      mountPath: /app/data
+      sizeGB: 1

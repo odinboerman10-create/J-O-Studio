@@ -1,0 +1,10 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node server/index.js"
+restartPolicyType = "ON_FAILURE"
+
+# After the first deploy, attach a Volume (Railway dashboard -> service -> Volumes)
+# mounted at /app/data so the SQLite leads database survives redeploys.

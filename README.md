@@ -35,6 +35,24 @@ It searches the official **Google Places API**, not scraped search results, and 
 2. Each search fetches up to 3 pages (≈60 businesses) from Google, keeps only the ones with no website, and adds them to your leads list. Re-running the same search updates existing rows instead of duplicating them.
 3. Filter/search the leads table, update each lead's status and notes as you contact them, and click **Export CSV** any time to download your current list.
 
+### Deploying it (so it's reachable at a URL instead of just localhost)
+
+The app is a plain Node/Express server, so it runs on any Node host. A `Dockerfile` is included, plus ready-to-use configs for two easy options:
+
+- **Render** — commit includes `render.yaml`. In the Render dashboard: New → Blueprint → pick this repo. It builds the Dockerfile, attaches a persistent disk at `/app/data` (so your SQLite leads database survives redeploys), and prompts you for the `GOOGLE_PLACES_API_KEY` env var.
+- **Railway** — commit includes `railway.toml`. New Project → Deploy from GitHub → pick this repo. After the first deploy, add a Volume (service → Volumes) mounted at `/app/data`, and set `GOOGLE_PLACES_API_KEY` in Variables.
+- **Anywhere else** (Fly.io, a VPS, etc.) — build and run the included `Dockerfile` directly, mounting a volume at `/app/data` for persistence:
+  ```bash
+  docker build -t no-website-leads .
+  docker run -p 3000:3000 \
+    -e GOOGLE_PLACES_API_KEY=your_key \
+    -e APP_USERNAME=admin -e APP_PASSWORD=a_strong_password \
+    -v $(pwd)/data:/app/data \
+    no-website-leads
+  ```
+
+**Set `APP_USERNAME` and `APP_PASSWORD` on any deployment reachable off your own machine.** The app ships with no accounts or login by default — set both env vars and every request will require that HTTP Basic Auth login; leave them unset for local-only use. Without this, anyone who finds the URL can view/edit/delete your leads and run searches that spend your Google API quota.
+
 ### Compliance — read before you start cold-contacting people
 
 This tool only collects data through Google's official API, which is compliant to use this way. What you *do* with the phone numbers/emails afterward is on you to get right:

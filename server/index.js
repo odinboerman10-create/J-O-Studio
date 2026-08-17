@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
+import { timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
   upsertLead,
@@ -17,7 +18,38 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// If APP_USERNAME/APP_PASSWORD are set, require HTTP Basic Auth on every request.
+// This app has no per-user accounts — it's meant to be gated by one shared
+// credential when deployed somewhere reachable off your own machine, since
+// anyone with the URL could otherwise read/edit/delete your leads and spend
+// your Google Places API quota.
+function basicAuth(req, res, next) {
+  const user = process.env.APP_USERNAME;
+  const pass = process.env.APP_PASSWORD;
+  if (!user || !pass) return next(); // no credentials configured -> auth disabled
+
+  const header = req.headers.authorization ?? '';
+  const [scheme, encoded] = header.split(' ');
+  if (scheme === 'Basic' && encoded) {
+    const [reqUser, reqPass] = Buffer.from(encoded, 'base64').toString().split(':');
+    const userOk = safeEqual(reqUser, user);
+    const passOk = safeEqual(reqPass, pass);
+    if (userOk && passOk) return next();
+  }
+
+  res.set('WWW-Authenticate', 'Basic realm="No-Website Leads"');
+  res.status(401).send('Authentication required');
+}
+
+function safeEqual(a = '', b = '') {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 app.use(cors());
+app.use(basicAuth);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
