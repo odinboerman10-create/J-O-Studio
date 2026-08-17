@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No-Website Leads — J&amp;O Studios</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>No-Website Leads</h1>
+    <p class="subtitle">Find local businesses without a website — outreach list for J&amp;O Studios</p>
+  </header>
+
+  <main>
+    <section class="panel search-panel">
+      <h2>Search</h2>
+      <form id="search-form">
+        <div class="field">
+          <label for="businessType">Business type</label>
+          <input id="businessType" name="businessType" placeholder="e.g. plumber, bakery, dentist" required />
+        </div>
+        <div class="field">
+          <label for="location">Location</label>
+          <input id="location" name="location" placeholder="e.g. Austin, TX" required />
+        </div>
+        <div class="field">
+          <label for="maxPages">Pages to fetch (20 results/page, max 3)</label>
+          <input id="maxPages" name="maxPages" type="number" min="1" max="3" value="3" />
+        </div>
+        <button type="submit" id="search-btn">Search</button>
+      </form>
+      <p id="search-status" class="status-line"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Leads</h2>
+      <div class="toolbar">
+        <input id="filter-q" placeholder="Search name, phone, email, address..." />
+        <select id="filter-status">
+          <option value="">All statuses</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="interested">Interested</option>
+          <option value="not_interested">Not interested</option>
+          <option value="converted">Converted</option>
+        </select>
+        <button id="refresh-btn">Refresh</button>
+        <a id="export-btn" href="/api/leads/export.csv">Export CSV</a>
+        <span id="lead-count" class="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="leads-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Address</th>
+              <th>Rating</th>
+              <th>Status</th>
+              <th>Notes</th>
+              <th>Map</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="leads-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

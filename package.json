@@ -1,0 +1,20 @@
+{
+  "name": "no-website-leads",
+  "version": "1.0.0",
+  "description": "Finds local businesses without a website using the Google Places API, so J&O Studios can build an outreach list of prospects who need a site.",
+  "type": "module",
+  "private": true,
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
