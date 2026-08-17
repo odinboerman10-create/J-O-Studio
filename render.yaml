@@ -7,6 +7,10 @@ services:
     envVars:
       - key: GOOGLE_PLACES_API_KEY
         sync: false
+      - key: APP_USERNAME
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
       - key: PORT
         value: 3000
     disk:

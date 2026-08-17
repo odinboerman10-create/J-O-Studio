@@ -39,8 +39,8 @@ It searches the official **Google Places API**, not scraped search results, and 
 
 The app is a plain Node/Express server, so it runs on any Node host. A `Dockerfile` is included, plus ready-to-use configs for two easy options:
 
-- **Render** — commit includes `render.yaml`. In the Render dashboard: New → Blueprint → pick this repo. It builds the Dockerfile, attaches a persistent disk at `/app/data` (so your SQLite leads database survives redeploys), and prompts you for the `GOOGLE_PLACES_API_KEY` env var.
-- **Railway** — commit includes `railway.toml`. New Project → Deploy from GitHub → pick this repo. After the first deploy, add a Volume (service → Volumes) mounted at `/app/data`, and set `GOOGLE_PLACES_API_KEY` in Variables.
+- **Render** — commit includes `render.yaml`. In the Render dashboard: New → Blueprint → pick this repo. It builds the Dockerfile, attaches a persistent disk at `/app/data` (so your SQLite leads database survives redeploys), and prompts you for `GOOGLE_PLACES_API_KEY`, `APP_USERNAME`, and `APP_PASSWORD`. **Set all three** — leaving the last two blank deploys with no login.
+- **Railway** — commit includes `railway.toml`. New Project → Deploy from GitHub → pick this repo. After the first deploy, add a Volume (service → Volumes) mounted at `/app/data`, and set `GOOGLE_PLACES_API_KEY`, `APP_USERNAME`, and `APP_PASSWORD` in Variables.
 - **Anywhere else** (Fly.io, a VPS, etc.) — build and run the included `Dockerfile` directly, mounting a volume at `/app/data` for persistence:
   ```bash
   docker build -t no-website-leads .

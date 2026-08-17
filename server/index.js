@@ -31,7 +31,10 @@ function basicAuth(req, res, next) {
   const header = req.headers.authorization ?? '';
   const [scheme, encoded] = header.split(' ');
   if (scheme === 'Basic' && encoded) {
-    const [reqUser, reqPass] = Buffer.from(encoded, 'base64').toString().split(':');
+    const decoded = Buffer.from(encoded, 'base64').toString();
+    const sep = decoded.indexOf(':');
+    const reqUser = sep === -1 ? decoded : decoded.slice(0, sep);
+    const reqPass = sep === -1 ? '' : decoded.slice(sep + 1);
     const userOk = safeEqual(reqUser, user);
     const passOk = safeEqual(reqPass, pass);
     if (userOk && passOk) return next();
@@ -136,5 +139,12 @@ app.listen(PORT, () => {
   console.log(`No-Website Leads server running at http://localhost:${PORT}`);
   if (!process.env.GOOGLE_PLACES_API_KEY) {
     console.warn('WARNING: GOOGLE_PLACES_API_KEY is not set. Searches will fail until you add it to .env');
+  }
+  const hasUser = Boolean(process.env.APP_USERNAME);
+  const hasPass = Boolean(process.env.APP_PASSWORD);
+  if (hasUser !== hasPass) {
+    console.warn('WARNING: Only one of APP_USERNAME/APP_PASSWORD is set, so Basic Auth is DISABLED (both are required). The app is running with no login.');
+  } else if (!hasUser && !hasPass) {
+    console.warn('WARNING: APP_USERNAME/APP_PASSWORD are not set. The app has no login — fine for local use, but set both before deploying anywhere publicly reachable.');
   }
 });

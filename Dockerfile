@@ -10,8 +10,9 @@ COPY public ./public
 
 # Persistent SQLite data lives here — mount a volume/disk at this path
 # on your host so leads survive redeploys and restarts.
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data && chown -R node:node /app
 VOLUME ["/app/data"]
+USER node
 
 ENV PORT=3000
 EXPOSE 3000
