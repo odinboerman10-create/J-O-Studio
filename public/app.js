@@ -93,6 +93,13 @@ function renderRow(lead) {
   }
   tr.appendChild(mapTd);
 
+  const findTd = document.createElement('td');
+  const searchTerm = [lead.name, lead.city, lead.state].filter(Boolean).join(' ');
+  findTd.appendChild(makeSearchLink('FB', `https://www.facebook.com/search/pages/?q=${encodeURIComponent(searchTerm)}`));
+  findTd.appendChild(document.createTextNode(' '));
+  findTd.appendChild(makeSearchLink('Google', `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`));
+  tr.appendChild(findTd);
+
   const actionsTd = document.createElement('td');
   const delBtn = document.createElement('button');
   delBtn.textContent = 'Delete';
@@ -106,6 +113,16 @@ function renderRow(lead) {
   tr.appendChild(actionsTd);
 
   return tr;
+}
+
+function makeSearchLink(label, href) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.className = 'map-link';
+  a.textContent = label;
+  return a;
 }
 
 function makeEditableCell(lead, field, type) {
