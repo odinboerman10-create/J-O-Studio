@@ -117,3 +117,84 @@ td textarea { resize: vertical; min-height: 32px; }
 .delete-btn:hover { background: var(--bad); color: white; }
 
 a.map-link { color: var(--accent); }
+
+/* ---- bulk toolbar ---- */
+.bulk-toolbar { margin-top: -6px; }
+.bulk-toolbar select { width: auto; }
+#bulk-status { min-height: 1.2em; }
+
+/* ---- actions cell ---- */
+.actions-cell { display: flex; gap: 6px; flex-wrap: wrap; white-space: nowrap; }
+.email-btn { background: var(--accent); }
+.history-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-weight: 500; }
+.history-btn:hover { background: var(--border); color: var(--text); }
+
+th:first-child, td:first-child { width: 28px; }
+
+/* ---- email dialog ---- */
+dialog#email-dialog {
+  width: min(560px, 92vw);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+}
+dialog#email-dialog::backdrop { background: rgba(6, 9, 16, 0.6); }
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-head h3 { margin: 0; font-size: 1.05rem; }
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+.icon-btn:hover { color: var(--text); }
+
+.dialog-tabs { display: flex; gap: 4px; padding: 12px 20px 0; }
+.tab-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px 6px;
+  font-weight: 600;
+}
+.tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+#compose-panel, #history-panel { padding: 16px 20px 20px; }
+#compose-panel .field { margin-bottom: 12px; }
+#email-body { resize: vertical; font-family: inherit; }
+
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#email-cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+.history-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.history-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.history-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.history-badge {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.history-item.status-sent .history-badge { color: var(--good); }
+.history-item.status-failed .history-badge { color: var(--bad); }
+.history-item-meta { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+.history-error { color: var(--bad); font-size: 0.78rem; margin-top: 4px; }
+.history-empty { color: var(--muted); font-size: 0.88rem; }

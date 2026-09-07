@@ -37,6 +37,21 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
   CREATE INDEX IF NOT EXISTS idx_leads_city ON leads(city);
+
+  CREATE TABLE IF NOT EXISTS emails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    template TEXT NOT NULL,
+    to_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL,
+    provider_id TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_emails_lead ON emails(lead_id);
 `);
 
 const insertStmt = db.prepare(`
@@ -139,6 +154,36 @@ export function stats() {
   const total = db.prepare('SELECT COUNT(*) AS n FROM leads').get().n;
   const byStatus = db.prepare('SELECT status, COUNT(*) AS n FROM leads GROUP BY status').all();
   return { total, byStatus };
+}
+
+const insertEmailStmt = db.prepare(`
+  INSERT INTO emails (lead_id, template, to_email, subject, body, status, provider_id, error)
+  VALUES (@leadId, @template, @toEmail, @subject, @body, @status, @providerId, @error)
+`);
+
+export function logEmail(entry) {
+  insertEmailStmt.run({
+    leadId: entry.leadId,
+    template: entry.template,
+    toEmail: entry.toEmail,
+    subject: entry.subject,
+    body: entry.body,
+    status: entry.status,
+    providerId: entry.providerId ?? null,
+    error: entry.error ?? null,
+  });
+}
+
+export function listEmailsForLead(leadId) {
+  return db.prepare('SELECT * FROM emails WHERE lead_id = ? ORDER BY created_at DESC').all(leadId);
+}
+
+export function emailCountsByLead() {
+  const rows = db.prepare(`
+    SELECT lead_id, COUNT(*) AS n, MAX(created_at) AS last_sent_at
+    FROM emails WHERE status = 'sent' GROUP BY lead_id
+  `).all();
+  return Object.fromEntries(rows.map((r) => [r.lead_id, { count: r.n, lastSentAt: r.last_sent_at }]));
 }
 
 export default db;

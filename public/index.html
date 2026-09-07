@@ -49,10 +49,17 @@
         <a id="export-btn" href="/api/leads/export.csv">Export CSV</a>
         <span id="lead-count" class="count"></span>
       </div>
+      <div class="toolbar bulk-toolbar">
+        <span id="selected-count" class="count">0 selected</span>
+        <select id="bulk-template"></select>
+        <button id="bulk-email-btn" disabled>Email selected</button>
+        <span id="bulk-status" class="status-line"></span>
+      </div>
       <div class="table-wrap">
         <table id="leads-table">
           <thead>
             <tr>
+              <th><input type="checkbox" id="select-all" /></th>
               <th>Name</th>
               <th>Category</th>
               <th>Phone</th>
@@ -70,6 +77,44 @@
       </div>
     </section>
   </main>
+
+  <dialog id="email-dialog">
+    <form method="dialog" id="email-form">
+      <div class="dialog-head">
+        <h3 id="email-dialog-title">Email lead</h3>
+        <button type="button" id="email-dialog-close" class="icon-btn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="dialog-tabs">
+        <button type="button" id="tab-compose" class="tab-btn active">Compose</button>
+        <button type="button" id="tab-history" class="tab-btn">History (<span id="history-count">0</span>)</button>
+      </div>
+
+      <div id="compose-panel">
+        <div class="field">
+          <label for="email-template">Template</label>
+          <select id="email-template"></select>
+        </div>
+        <div class="field">
+          <label for="email-subject">Subject</label>
+          <input id="email-subject" type="text" />
+        </div>
+        <div class="field">
+          <label for="email-body">Body</label>
+          <textarea id="email-body" rows="10"></textarea>
+        </div>
+        <p id="email-send-status" class="status-line"></p>
+        <div class="dialog-actions">
+          <button type="button" id="email-cancel-btn">Cancel</button>
+          <button type="button" id="email-send-btn">Send email</button>
+        </div>
+      </div>
+
+      <div id="history-panel" hidden>
+        <ul id="history-list" class="history-list"></ul>
+      </div>
+    </form>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
