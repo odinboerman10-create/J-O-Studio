@@ -38,7 +38,10 @@ function renderRow(lead) {
   tr.dataset.id = lead.id;
 
   const nameTd = document.createElement('td');
-  nameTd.innerHTML = `<strong>${escapeHtml(lead.name)}</strong><br><span style="color:var(--muted)">${escapeHtml(lead.city ?? '')}${lead.state ? ', ' + escapeHtml(lead.state) : ''}</span>`;
+  const contactLine = lead.contact_name
+    ? `<br><span style="color:var(--accent)">${escapeHtml(lead.contact_name)}${lead.contact_title ? ' — ' + escapeHtml(lead.contact_title) : ''}</span>`
+    : '';
+  nameTd.innerHTML = `<strong>${escapeHtml(lead.name)}</strong><br><span style="color:var(--muted)">${escapeHtml(lead.city ?? '')}${lead.state ? ', ' + escapeHtml(lead.state) : ''}</span>${contactLine}`;
   tr.appendChild(nameTd);
 
   const categoryTd = document.createElement('td');
@@ -97,6 +100,13 @@ function renderRow(lead) {
   actionsTd.style.display = 'flex';
   actionsTd.style.gap = '6px';
 
+  if (!lead.email) {
+    const enrichBtn = document.createElement('button');
+    enrichBtn.textContent = 'Find contact';
+    enrichBtn.addEventListener('click', () => enrichLead(lead, enrichBtn, tr));
+    actionsTd.appendChild(enrichBtn);
+  }
+
   const invoiceBtn = document.createElement('button');
   invoiceBtn.textContent = 'Invoice';
   invoiceBtn.addEventListener('click', () => sendInvoice(lead));
@@ -125,6 +135,30 @@ function makeEditableCell(lead, field, type) {
   input.addEventListener('change', () => patchLead(lead.id, { [field]: input.value }));
   td.appendChild(input);
   return td;
+}
+
+async function enrichLead(lead, button, tr) {
+  if (!confirm(`Look up a contact email for ${lead.name}? This spends one Apollo credit.`)) return;
+  button.disabled = true;
+  button.textContent = 'Searching…';
+
+  try {
+    const res = await fetch(`/api/leads/${lead.id}/enrich`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Enrichment failed');
+
+    if (data.status === 'found') {
+      tr.replaceWith(renderRow(data.lead));
+    } else {
+      alert(`No contact found for ${lead.name}: ${data.reason}`);
+      button.disabled = false;
+      button.textContent = 'Find contact';
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+    button.disabled = false;
+    button.textContent = 'Find contact';
+  }
 }
 
 async function sendInvoice(lead) {

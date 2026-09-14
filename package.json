@@ -11,7 +11,8 @@
     "leads:find": "node scripts/find-leads.mjs",
     "outreach:send": "node scripts/send-outreach.mjs",
     "gmail:auth": "node scripts/gmail-auth.mjs",
-    "audit:site": "node scripts/audit-site.mjs"
+    "audit:site": "node scripts/audit-site.mjs",
+    "leads:enrich": "node scripts/enrich-leads.mjs"
   },
   "engines": {
     "node": ">=22.5.0"

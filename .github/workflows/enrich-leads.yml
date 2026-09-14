@@ -1,0 +1,40 @@
+name: Enrich leads (Apollo)
+
+# Manual trigger only — this spends real Apollo credits, so it doesn't run on
+# a schedule. Actions tab → "Enrich leads (Apollo)" → Run workflow.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  enrich-leads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Enrich leads with contact emails
+        env:
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          ENRICH_MAX_PER_RUN: ${{ vars.ENRICH_MAX_PER_RUN }}
+          ENRICH_TARGET_TITLES: ${{ vars.ENRICH_TARGET_TITLES }}
+        run: npm run leads:enrich
+
+      - name: Commit updated leads
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/leads.sqlite
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Automated contact enrichment: $(date -u +%Y-%m-%d)"
+            git push
+          fi

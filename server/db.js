@@ -38,6 +38,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
   CREATE INDEX IF NOT EXISTS idx_leads_city ON leads(city);
 
+  CREATE TABLE IF NOT EXISTS enrichments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES leads(id),
+    provider TEXT NOT NULL DEFAULT 'apollo',
+    contact_name TEXT,
+    contact_title TEXT,
+    email TEXT,
+    phone TEXT,
+    status TEXT NOT NULL DEFAULT 'found',
+    raw_json TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_enrichments_lead ON enrichments(lead_id);
+
   CREATE TABLE IF NOT EXISTS payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lead_id INTEGER REFERENCES leads(id),
@@ -82,6 +97,18 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_site_audits_lead ON site_audits(lead_id);
 `);
+
+// SQLite has no "ADD COLUMN IF NOT EXISTS" — add new lead columns idempotently.
+for (const ddl of [
+  'ALTER TABLE leads ADD COLUMN contact_name TEXT',
+  'ALTER TABLE leads ADD COLUMN contact_title TEXT',
+]) {
+  try {
+    db.exec(ddl);
+  } catch (err) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+}
 
 const insertStmt = db.prepare(`
   INSERT INTO leads (
@@ -160,7 +187,7 @@ export function getLead(id) {
 }
 
 export function updateLead(id, fields) {
-  const allowed = ['status', 'notes', 'email', 'phone'];
+  const allowed = ['status', 'notes', 'email', 'phone', 'contact_name', 'contact_title'];
   const sets = [];
   const params = { id };
   for (const key of allowed) {
@@ -251,6 +278,45 @@ export function listOutreachCandidates({ limit = 20 } = {}) {
     ORDER BY leads.created_at ASC
     LIMIT @limit
   `).all({ limit });
+}
+
+// Leads with no email on file and no prior enrichment attempt (success or
+// failure) — candidates for contact enrichment via Apollo.
+export function listEnrichmentCandidates({ limit = 20 } = {}) {
+  return db.prepare(`
+    SELECT leads.* FROM leads
+    LEFT JOIN enrichments ON enrichments.lead_id = leads.id
+    WHERE (leads.email IS NULL OR leads.email = '')
+      AND leads.status = 'new'
+      AND enrichments.id IS NULL
+    ORDER BY leads.created_at ASC
+    LIMIT @limit
+  `).all({ limit });
+}
+
+const insertEnrichmentStmt = db.prepare(`
+  INSERT INTO enrichments (lead_id, provider, contact_name, contact_title, email, phone, status, raw_json)
+  VALUES (@leadId, @provider, @contactName, @contactTitle, @email, @phone, @status, @rawJson)
+`);
+
+export function insertEnrichment(record) {
+  insertEnrichmentStmt.run({
+    leadId: record.leadId,
+    provider: record.provider ?? 'apollo',
+    contactName: record.contactName ?? null,
+    contactTitle: record.contactTitle ?? null,
+    email: record.email ?? null,
+    phone: record.phone ?? null,
+    status: record.status ?? 'found',
+    rawJson: record.rawJson ?? null,
+  });
+}
+
+export function listEnrichments({ leadId } = {}) {
+  if (leadId) {
+    return db.prepare('SELECT * FROM enrichments WHERE lead_id = ? ORDER BY created_at DESC').all(leadId);
+  }
+  return db.prepare('SELECT * FROM enrichments ORDER BY created_at DESC').all();
 }
 
 const insertSiteAuditStmt = db.prepare(`
