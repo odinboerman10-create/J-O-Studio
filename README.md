@@ -87,15 +87,15 @@ Three GitHub Actions workflows chain together into a pipeline:
   doesn't return business emails, so every lead this finds starts with no
   email on file — that's what the next step is for.
 
-- **`.github/workflows/enrich-leads.yml`** — **manual trigger only**
-  (Actions tab → "Enrich leads (Apollo)" → Run workflow) — this one isn't
-  scheduled because it spends real Apollo credits. For every lead with no
-  email, it looks up a likely decision-maker (owner, founder, GM, etc.) at
-  that business via the Apollo API and reveals their contact email, writing
-  it back to the lead along with their name/title. Costs roughly one Apollo
-  credit per successful match — check your Apollo dashboard for your actual
-  balance/pricing. You can also run this per-lead from the UI ("Find
-  contact" button on any lead with no email).
+- **`.github/workflows/enrich-leads.yml`** — runs weekly (Tuesdays, the day
+  after find-leads), capped at `ENRICH_MAX_PER_RUN` leads per run (default
+  10 — **this spends one real Apollo credit per successful match**, so this
+  cap is what limits your automatic weekly spend; raise it deliberately, not
+  by accident). For every lead with no email, it looks up a likely
+  decision-maker (owner, founder, GM, etc.) at that business and reveals
+  their contact email, writing it back to the lead along with their
+  name/title. Also runs on demand (Actions tab → "Enrich leads (Apollo)" →
+  Run workflow), and per-lead from the UI ("Find contact" button).
 
 - **`.github/workflows/outreach.yml`** — runs daily. For every lead that's
   `status = 'new'`, now has an email (whether added manually or via

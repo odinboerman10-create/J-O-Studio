@@ -1,8 +1,12 @@
 name: Enrich leads (Apollo)
 
-# Manual trigger only — this spends real Apollo credits, so it doesn't run on
-# a schedule. Actions tab → "Enrich leads (Apollo)" → Run workflow.
+# Runs weekly (the day after find-leads.yml, so freshly found leads get
+# enriched right away) with a conservative per-run credit cap — see
+# ENRICH_MAX_PER_RUN below. Also runs on demand: Actions tab →
+# "Enrich leads (Apollo)" → Run workflow.
 on:
+  schedule:
+    - cron: '0 15 * * 2' # Every Tuesday 15:00 UTC
   workflow_dispatch: {}
 
 permissions:
