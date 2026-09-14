@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Audit — J&amp;O Studios</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Website Content Audit</h1>
+    <p class="subtitle">Paste any website URL — a competitor, a prospect, or a current client — for a Claude-generated content &amp; local-SEO critique.</p>
+    <nav class="topnav">
+      <a href="/index.html">Leads</a>
+      <a href="/pricing.html">Packages</a>
+      <a href="/audit.html">Content Audit</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel">
+      <form id="audit-form">
+        <div class="field">
+          <label for="url">Website URL</label>
+          <input id="url" name="url" placeholder="e.g. example.com" required />
+        </div>
+        <button type="submit" id="audit-btn">Run audit</button>
+      </form>
+      <p id="audit-status" class="status-line"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Recent audits</h2>
+      <div class="table-wrap">
+        <table id="audits-table">
+          <thead>
+            <tr>
+              <th>URL</th>
+              <th>Grade</th>
+              <th>Score</th>
+              <th>Headline</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="audits-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="audit.js"></script>
+</body>
+</html>

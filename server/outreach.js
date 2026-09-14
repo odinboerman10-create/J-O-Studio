@@ -19,6 +19,7 @@ Business details:
 - Category: ${lead.category || 'local business'}
 - City/State: ${[lead.city, lead.state].filter(Boolean).join(', ') || 'unknown'}
 - Google rating: ${lead.rating ? `${lead.rating} stars (${lead.review_count || 0} reviews)` : 'not listed'}
+${lead.contact_name ? `- Recipient: ${lead.contact_name}${lead.contact_title ? ` (${lead.contact_title})` : ''} — address them by first name in the greeting` : '- Recipient: unknown — use a generic greeting like "Hi there" or open straight into the message, no "Dear Sir/Madam"'}
 
 Requirements:
 - Subject line under 60 characters, not salesy or spammy (no ALL CAPS, no excessive punctuation).

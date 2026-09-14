@@ -12,11 +12,18 @@ import {
   stats,
   listPayments,
   listOutreach,
+  insertSiteAudit,
+  getSiteAudit,
+  listSiteAudits,
+  insertEnrichment,
+  listEnrichments,
 } from './db.js';
 import { findBusinessesWithoutWebsite } from './providers/googlePlaces.js';
 import { stripe } from './stripeClient.js';
 import { PACKAGES } from './packages.js';
 import { createCheckoutSession, createAndSendInvoice, handleWebhookEvent } from './billing.js';
+import { runSiteAudit } from './siteAudit.js';
+import { enrichLeadContact } from './enrichment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -94,6 +101,91 @@ app.get('/api/leads/:id/payments', (req, res) => {
 
 app.get('/api/leads/:id/outreach', (req, res) => {
   res.json(listOutreach({ leadId: Number(req.params.id) }));
+});
+
+app.post('/api/leads/:id/enrich', async (req, res) => {
+  const lead = getLead(Number(req.params.id));
+  if (!lead) return res.status(404).json({ error: 'Lead not found' });
+
+  try {
+    const result = await enrichLeadContact(lead);
+    insertEnrichment({
+      leadId: lead.id,
+      contactName: result.contactName,
+      contactTitle: result.contactTitle,
+      email: result.email,
+      phone: result.phone,
+      status: result.status,
+      rawJson: JSON.stringify(result.raw ?? null),
+    });
+
+    if (result.status === 'found') {
+      const updated = updateLead(lead.id, {
+        email: result.email,
+        contact_name: result.contactName,
+        contact_title: result.contactTitle,
+      });
+      return res.json({ status: 'found', lead: updated });
+    }
+    res.json({ status: 'not_found', reason: result.reason });
+  } catch (err) {
+    console.error(err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/leads/:id/enrichments', (req, res) => {
+  res.json(listEnrichments({ leadId: Number(req.params.id) }));
+});
+
+app.post('/api/audit', async (req, res) => {
+  const { url, leadId } = req.body ?? {};
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  let normalizedUrl;
+  try {
+    normalizedUrl = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).toString();
+  } catch {
+    return res.status(400).json({ error: 'That does not look like a valid URL' });
+  }
+
+  try {
+    const { url: finalUrl, critique, reportHtml } = await runSiteAudit(normalizedUrl);
+    const audit = insertSiteAudit({
+      leadId: leadId ? Number(leadId) : null,
+      url: finalUrl,
+      score: critique.overallScore ?? null,
+      grade: critique.grade ?? null,
+      headline: critique.headline ?? null,
+      reportHtml,
+      reportJson: JSON.stringify(critique),
+    });
+    res.json({ id: audit.id, url: audit.url, score: audit.score, grade: audit.grade, headline: audit.headline });
+  } catch (err) {
+    console.error(err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/audits', (req, res) => {
+  res.json(listSiteAudits());
+});
+
+app.get('/api/audits/:id/report', (req, res) => {
+  const audit = getSiteAudit(Number(req.params.id));
+  if (!audit) return res.status(404).send('Not found');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(audit.report_html);
+});
+
+app.get('/api/audits/:id', (req, res) => {
+  const audit = getSiteAudit(Number(req.params.id));
+  if (!audit) return res.status(404).json({ error: 'Not found' });
+  res.json(audit);
+});
+
+app.get('/api/leads/:id/audits', (req, res) => {
+  res.json(listSiteAudits({ leadId: Number(req.params.id) }));
 });
 
 // Run a search against Google Places and store any businesses with no website.
