@@ -1,0 +1,38 @@
+name: Find leads
+
+on:
+  schedule:
+    - cron: '0 13 * * 1' # Every Monday 13:00 UTC — edit search targets in config/search-targets.json
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  find-leads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Run lead search
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: npm run leads:find
+
+      - name: Commit updated leads
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/leads.sqlite
+          if git diff --cached --quiet; then
+            echo "No new leads."
+          else
+            git commit -m "Automated lead search: $(date -u +%Y-%m-%d)"
+            git push
+          fi

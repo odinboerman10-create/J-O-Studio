@@ -37,6 +37,36 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
   CREATE INDEX IF NOT EXISTS idx_leads_city ON leads(city);
+
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER REFERENCES leads(id),
+    type TEXT NOT NULL,
+    stripe_id TEXT NOT NULL UNIQUE,
+    customer_email TEXT,
+    description TEXT,
+    amount_cents INTEGER,
+    currency TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    hosted_url TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_payments_lead ON payments(lead_id);
+
+  CREATE TABLE IF NOT EXISTS outreach (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES leads(id),
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sent',
+    provider_message_id TEXT,
+    error TEXT,
+    sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_outreach_lead ON outreach(lead_id);
 `);
 
 const insertStmt = db.prepare(`
@@ -139,6 +169,74 @@ export function stats() {
   const total = db.prepare('SELECT COUNT(*) AS n FROM leads').get().n;
   const byStatus = db.prepare('SELECT status, COUNT(*) AS n FROM leads GROUP BY status').all();
   return { total, byStatus };
+}
+
+const insertPaymentStmt = db.prepare(`
+  INSERT INTO payments (lead_id, type, stripe_id, customer_email, description, amount_cents, currency, status, hosted_url)
+  VALUES (@leadId, @type, @stripeId, @customerEmail, @description, @amountCents, @currency, @status, @hostedUrl)
+`);
+
+export function insertPayment(payment) {
+  insertPaymentStmt.run({
+    leadId: payment.leadId ?? null,
+    type: payment.type,
+    stripeId: payment.stripeId,
+    customerEmail: payment.customerEmail ?? null,
+    description: payment.description ?? null,
+    amountCents: payment.amountCents ?? null,
+    currency: payment.currency ?? 'usd',
+    status: payment.status ?? 'pending',
+    hostedUrl: payment.hostedUrl ?? null,
+  });
+}
+
+export function updatePaymentStatus(stripeId, status) {
+  db.prepare("UPDATE payments SET status = ?, updated_at = datetime('now') WHERE stripe_id = ?").run(status, stripeId);
+}
+
+export function listPayments({ leadId } = {}) {
+  if (leadId) {
+    return db.prepare('SELECT * FROM payments WHERE lead_id = ? ORDER BY created_at DESC').all(leadId);
+  }
+  return db.prepare('SELECT * FROM payments ORDER BY created_at DESC').all();
+}
+
+const insertOutreachStmt = db.prepare(`
+  INSERT INTO outreach (lead_id, subject, body, status, provider_message_id, error)
+  VALUES (@leadId, @subject, @body, @status, @providerMessageId, @error)
+`);
+
+export function insertOutreach(record) {
+  insertOutreachStmt.run({
+    leadId: record.leadId,
+    subject: record.subject,
+    body: record.body,
+    status: record.status ?? 'sent',
+    providerMessageId: record.providerMessageId ?? null,
+    error: record.error ?? null,
+  });
+}
+
+export function listOutreach({ leadId } = {}) {
+  if (leadId) {
+    return db.prepare('SELECT * FROM outreach WHERE lead_id = ? ORDER BY sent_at DESC').all(leadId);
+  }
+  return db.prepare('SELECT * FROM outreach ORDER BY sent_at DESC').all();
+}
+
+// Leads that are candidates for a first outreach email: never contacted,
+// have an email on file, and aren't already in a terminal status.
+export function listOutreachCandidates({ limit = 20 } = {}) {
+  return db.prepare(`
+    SELECT leads.* FROM leads
+    LEFT JOIN outreach ON outreach.lead_id = leads.id
+    WHERE leads.email IS NOT NULL
+      AND leads.email != ''
+      AND leads.status = 'new'
+      AND outreach.id IS NULL
+    ORDER BY leads.created_at ASC
+    LIMIT @limit
+  `).all({ limit });
 }
 
 export default db;

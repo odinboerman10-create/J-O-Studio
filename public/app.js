@@ -94,6 +94,14 @@ function renderRow(lead) {
   tr.appendChild(mapTd);
 
   const actionsTd = document.createElement('td');
+  actionsTd.style.display = 'flex';
+  actionsTd.style.gap = '6px';
+
+  const invoiceBtn = document.createElement('button');
+  invoiceBtn.textContent = 'Invoice';
+  invoiceBtn.addEventListener('click', () => sendInvoice(lead));
+  actionsTd.appendChild(invoiceBtn);
+
   const delBtn = document.createElement('button');
   delBtn.textContent = 'Delete';
   delBtn.className = 'delete-btn';
@@ -117,6 +125,35 @@ function makeEditableCell(lead, field, type) {
   input.addEventListener('change', () => patchLead(lead.id, { [field]: input.value }));
   td.appendChild(input);
   return td;
+}
+
+async function sendInvoice(lead) {
+  if (!lead.email) {
+    alert(`${lead.name} has no email on file — add one first, then try again.`);
+    return;
+  }
+  const description = prompt(`What is this invoice for?`, 'Website design services');
+  if (!description) return;
+  const dollars = prompt(`Amount to invoice ${lead.name} (USD):`, '1500');
+  if (!dollars) return;
+  const amountCents = Math.round(Number(dollars) * 100);
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    alert('Enter a valid amount.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/leads/${lead.id}/invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description, amountCents }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send invoice');
+    alert(`Invoice sent to ${lead.email}.\n${data.hostedInvoiceUrl}`);
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
 }
 
 async function patchLead(id, fields) {
