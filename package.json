@@ -10,13 +10,15 @@
     "dev": "node --watch server/index.js",
     "leads:find": "node scripts/find-leads.mjs",
     "outreach:send": "node scripts/send-outreach.mjs",
-    "gmail:auth": "node scripts/gmail-auth.mjs"
+    "gmail:auth": "node scripts/gmail-auth.mjs",
+    "audit:site": "node scripts/audit-site.mjs"
   },
   "engines": {
     "node": ">=22.5.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

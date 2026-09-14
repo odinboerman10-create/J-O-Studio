@@ -67,6 +67,20 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_outreach_lead ON outreach(lead_id);
+
+  CREATE TABLE IF NOT EXISTS site_audits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER REFERENCES leads(id),
+    url TEXT NOT NULL,
+    score INTEGER,
+    grade TEXT,
+    headline TEXT,
+    report_html TEXT NOT NULL,
+    report_json TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_site_audits_lead ON site_audits(lead_id);
 `);
 
 const insertStmt = db.prepare(`
@@ -237,6 +251,35 @@ export function listOutreachCandidates({ limit = 20 } = {}) {
     ORDER BY leads.created_at ASC
     LIMIT @limit
   `).all({ limit });
+}
+
+const insertSiteAuditStmt = db.prepare(`
+  INSERT INTO site_audits (lead_id, url, score, grade, headline, report_html, report_json)
+  VALUES (@leadId, @url, @score, @grade, @headline, @reportHtml, @reportJson)
+`);
+
+export function insertSiteAudit(audit) {
+  const info = insertSiteAuditStmt.run({
+    leadId: audit.leadId ?? null,
+    url: audit.url,
+    score: audit.score ?? null,
+    grade: audit.grade ?? null,
+    headline: audit.headline ?? null,
+    reportHtml: audit.reportHtml,
+    reportJson: audit.reportJson ?? null,
+  });
+  return getSiteAudit(Number(info.lastInsertRowid));
+}
+
+export function getSiteAudit(id) {
+  return db.prepare('SELECT * FROM site_audits WHERE id = ?').get(id);
+}
+
+export function listSiteAudits({ leadId } = {}) {
+  if (leadId) {
+    return db.prepare('SELECT id, lead_id, url, score, grade, headline, created_at FROM site_audits WHERE lead_id = ? ORDER BY created_at DESC').all(leadId);
+  }
+  return db.prepare('SELECT id, lead_id, url, score, grade, headline, created_at FROM site_audits ORDER BY created_at DESC').all();
 }
 
 export default db;

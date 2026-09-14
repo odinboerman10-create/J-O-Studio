@@ -12,11 +12,15 @@ import {
   stats,
   listPayments,
   listOutreach,
+  insertSiteAudit,
+  getSiteAudit,
+  listSiteAudits,
 } from './db.js';
 import { findBusinessesWithoutWebsite } from './providers/googlePlaces.js';
 import { stripe } from './stripeClient.js';
 import { PACKAGES } from './packages.js';
 import { createCheckoutSession, createAndSendInvoice, handleWebhookEvent } from './billing.js';
+import { runSiteAudit } from './siteAudit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -94,6 +98,56 @@ app.get('/api/leads/:id/payments', (req, res) => {
 
 app.get('/api/leads/:id/outreach', (req, res) => {
   res.json(listOutreach({ leadId: Number(req.params.id) }));
+});
+
+app.post('/api/audit', async (req, res) => {
+  const { url, leadId } = req.body ?? {};
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  let normalizedUrl;
+  try {
+    normalizedUrl = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).toString();
+  } catch {
+    return res.status(400).json({ error: 'That does not look like a valid URL' });
+  }
+
+  try {
+    const { url: finalUrl, critique, reportHtml } = await runSiteAudit(normalizedUrl);
+    const audit = insertSiteAudit({
+      leadId: leadId ? Number(leadId) : null,
+      url: finalUrl,
+      score: critique.overallScore ?? null,
+      grade: critique.grade ?? null,
+      headline: critique.headline ?? null,
+      reportHtml,
+      reportJson: JSON.stringify(critique),
+    });
+    res.json({ id: audit.id, url: audit.url, score: audit.score, grade: audit.grade, headline: audit.headline });
+  } catch (err) {
+    console.error(err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/audits', (req, res) => {
+  res.json(listSiteAudits());
+});
+
+app.get('/api/audits/:id/report', (req, res) => {
+  const audit = getSiteAudit(Number(req.params.id));
+  if (!audit) return res.status(404).send('Not found');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(audit.report_html);
+});
+
+app.get('/api/audits/:id', (req, res) => {
+  const audit = getSiteAudit(Number(req.params.id));
+  if (!audit) return res.status(404).json({ error: 'Not found' });
+  res.json(audit);
+});
+
+app.get('/api/leads/:id/audits', (req, res) => {
+  res.json(listSiteAudits({ leadId: Number(req.params.id) }));
 });
 
 // Run a search against Google Places and store any businesses with no website.
