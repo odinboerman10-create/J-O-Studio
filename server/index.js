@@ -11,6 +11,7 @@ import {
   deleteLead,
   stats,
   listPayments,
+  listOutreach,
 } from './db.js';
 import { findBusinessesWithoutWebsite } from './providers/googlePlaces.js';
 import { stripe } from './stripeClient.js';
@@ -89,6 +90,10 @@ app.post('/api/leads/:id/invoice', async (req, res) => {
 
 app.get('/api/leads/:id/payments', (req, res) => {
   res.json(listPayments({ leadId: Number(req.params.id) }));
+});
+
+app.get('/api/leads/:id/outreach', (req, res) => {
+  res.json(listOutreach({ leadId: Number(req.params.id) }));
 });
 
 // Run a search against Google Places and store any businesses with no website.

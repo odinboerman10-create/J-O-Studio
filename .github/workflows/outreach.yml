@@ -1,0 +1,46 @@
+name: Send outreach
+
+on:
+  schedule:
+    - cron: '0 14 * * *' # Daily at 14:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  send-outreach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Send outreach emails
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_SENDER_EMAIL: ${{ vars.GMAIL_SENDER_EMAIL }}
+          OUTREACH_MAILING_ADDRESS: ${{ vars.OUTREACH_MAILING_ADDRESS }}
+          OUTREACH_SENDER_NAME: ${{ vars.OUTREACH_SENDER_NAME }}
+          OUTREACH_MODEL: ${{ vars.OUTREACH_MODEL }}
+          OUTREACH_MAX_PER_RUN: ${{ vars.OUTREACH_MAX_PER_RUN }}
+        run: npm run outreach:send
+
+      - name: Commit updated lead statuses
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/leads.sqlite
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Automated outreach: $(date -u +%Y-%m-%d)"
+            git push
+          fi

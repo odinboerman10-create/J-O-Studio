@@ -54,6 +54,19 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_payments_lead ON payments(lead_id);
+
+  CREATE TABLE IF NOT EXISTS outreach (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES leads(id),
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sent',
+    provider_message_id TEXT,
+    error TEXT,
+    sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_outreach_lead ON outreach(lead_id);
 `);
 
 const insertStmt = db.prepare(`
@@ -186,6 +199,44 @@ export function listPayments({ leadId } = {}) {
     return db.prepare('SELECT * FROM payments WHERE lead_id = ? ORDER BY created_at DESC').all(leadId);
   }
   return db.prepare('SELECT * FROM payments ORDER BY created_at DESC').all();
+}
+
+const insertOutreachStmt = db.prepare(`
+  INSERT INTO outreach (lead_id, subject, body, status, provider_message_id, error)
+  VALUES (@leadId, @subject, @body, @status, @providerMessageId, @error)
+`);
+
+export function insertOutreach(record) {
+  insertOutreachStmt.run({
+    leadId: record.leadId,
+    subject: record.subject,
+    body: record.body,
+    status: record.status ?? 'sent',
+    providerMessageId: record.providerMessageId ?? null,
+    error: record.error ?? null,
+  });
+}
+
+export function listOutreach({ leadId } = {}) {
+  if (leadId) {
+    return db.prepare('SELECT * FROM outreach WHERE lead_id = ? ORDER BY sent_at DESC').all(leadId);
+  }
+  return db.prepare('SELECT * FROM outreach ORDER BY sent_at DESC').all();
+}
+
+// Leads that are candidates for a first outreach email: never contacted,
+// have an email on file, and aren't already in a terminal status.
+export function listOutreachCandidates({ limit = 20 } = {}) {
+  return db.prepare(`
+    SELECT leads.* FROM leads
+    LEFT JOIN outreach ON outreach.lead_id = leads.id
+    WHERE leads.email IS NOT NULL
+      AND leads.email != ''
+      AND leads.status = 'new'
+      AND outreach.id IS NULL
+    ORDER BY leads.created_at ASC
+    LIMIT @limit
+  `).all({ limit });
 }
 
 export default db;

@@ -1,0 +1,14 @@
+[
+  { "businessType": "plumber", "location": "Austin, TX" },
+  { "businessType": "hvac contractor", "location": "Austin, TX" },
+  { "businessType": "hair salon", "location": "Austin, TX" },
+  { "businessType": "auto repair shop", "location": "Austin, TX" },
+  { "businessType": "dentist", "location": "Austin, TX" },
+  { "businessType": "landscaper", "location": "Austin, TX" },
+  { "businessType": "plumber", "location": "Denver, CO" },
+  { "businessType": "hvac contractor", "location": "Denver, CO" },
+  { "businessType": "hair salon", "location": "Denver, CO" },
+  { "businessType": "auto repair shop", "location": "Denver, CO" },
+  { "businessType": "dentist", "location": "Denver, CO" },
+  { "businessType": "landscaper", "location": "Denver, CO" }
+]

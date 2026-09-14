@@ -48,11 +48,68 @@ This tool only collects data through Google's official API, which is compliant t
 ```
 server/
   index.js               Express API + static file server
-  db.js                  SQLite (node:sqlite) storage for leads
+  db.js                  SQLite (node:sqlite) storage for leads, payments, outreach
   providers/
     googlePlaces.js       Google Places (New) search + no-website filter
+  billing.js             Stripe Checkout + Invoicing
+  outreach.js            Drafts (Claude) + sends (Gmail) outreach emails
+scripts/
+  find-leads.mjs          Runs config/search-targets.json against Google Places
+  send-outreach.mjs        Drafts + sends outreach to new leads with an email on file
+  gmail-auth.mjs           One-time local helper to mint a Gmail refresh token
+config/
+  search-targets.json      Business categories + cities to search (edit this)
 public/
-  index.html, app.js, style.css   Single-page front end
+  index.html, app.js, style.css   Leads CRM front end
+  pricing.html, pricing.js         Stripe Checkout packages page
 data/
-  leads.sqlite            Local database (gitignored)
+  leads.sqlite            Database — tracked in git so state persists across
+                           GitHub Actions runs (leads, payments, outreach log)
 ```
+
+## Automation: finding leads + outreach
+
+Two scheduled GitHub Actions workflows extend the leads CRM above:
+
+- **`.github/workflows/find-leads.yml`** — runs weekly (Mondays) and on demand
+  (Actions tab → "Find leads" → Run workflow). Searches every
+  `{ businessType, location }` pair in `config/search-targets.json` and
+  upserts results into `data/leads.sqlite`, then commits the updated database.
+  **Edit `config/search-targets.json` with your real target categories/cities
+  before relying on this** — it currently ships with placeholder
+  categories/cities to get you started.
+
+- **`.github/workflows/outreach.yml`** — runs daily. For every lead that's
+  `status = 'new'`, has an email on file, and has never been emailed before,
+  it drafts a personalized email with Claude and sends it via Gmail, then
+  marks the lead `contacted`. **Important limitation:** Google Places doesn't
+  return business emails (see above), so this only fires for leads where
+  you've manually added an email via the "email" column in the leads table —
+  it won't auto-email everyone the search finds.
+
+Both scripts also run locally: `npm run leads:find` and `npm run outreach:send`.
+
+### One-time setup
+
+1. **Google Places** (if not already done): add `GOOGLE_PLACES_API_KEY` as a
+   repo secret (Settings → Secrets and variables → Actions → Secrets).
+2. **Anthropic** (drafts the outreach copy): add `ANTHROPIC_API_KEY` as a repo
+   secret.
+3. **Gmail sending**: run `npm run gmail:auth` locally (it walks you through
+   creating a Google Cloud OAuth client and opens a consent screen — see the
+   comments at the top of `scripts/gmail-auth.mjs`). It prints a refresh
+   token. Add as repo secrets: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`,
+   `GMAIL_REFRESH_TOKEN`.
+4. **Non-secret config** — add these as repo **variables** (same page,
+   "Variables" tab, not "Secrets"): `GMAIL_SENDER_EMAIL`,
+   `OUTREACH_MAILING_ADDRESS` (a real physical mailing address — every
+   commercial email is legally required to include one under CAN-SPAM; the
+   send script refuses to run without it), `OUTREACH_SENDER_NAME` (optional),
+   `OUTREACH_MAX_PER_RUN` (optional, defaults to 15/run).
+5. Copy the same values into your local `.env` (see `.env.example`) if you
+   want to run the scripts locally too.
+
+Outreach currently sends automatically with no human approval step — each
+lead gets exactly one email, and the footer includes an opt-out line
+("reply unsubscribe"). If someone replies asking to stop, mark their lead
+`not_interested` manually; reply-handling isn't automated yet.
